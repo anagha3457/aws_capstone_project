@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - AWS Capstone Project{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Welcome Admin, {{ username }}!</h1>
+    <p>This is your administrative dashboard.</p>
+    <p>You can create and launch campaigns here.</p>
+
+        <div style="margin-top: 2rem;">
+            <a href="{{ url_for('launch_campaign_submit') }}">
+        <button>Launch Campaign</button>
+     </a>
+
+            <!-- <button onclick="alert('Feature coming soon!')" style="background-color: var(--secondary-color);">View
+                Students</button> -->
+            </div>
+
+            <div class="table-section">
+            <h3>Launched Campaigns</h3>
+
+        <table border="1" cellpadding="8">
+            <tr>
+                <th>Campaign Name</th>
+                <th>Status</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+            </tr>
+             {% if campaigns %}
+            {% for c in campaigns %}
+            <tr>
+                <td>{{ c.name }}</td>
+                <td>{{ c.status }}</td>
+                <td>{{ c.start_time }}</td>
+                <td>{{ c.end_time }}</td>
+            </tr>
+            {%endfor%}
+            {% else %}
+            <tr>
+                <td colspan="4">No campaigns launched yet</td>
+            </tr>
+            {% endif %}
+        </table>
+        </div>
+
+        <a href="{{ url_for('admin_logout') }}"><button style="background-color: #dc3545; margin-top: 2rem;">Admin
+                Logout</button></a>
+    </div>
+
+    
+{% endblock %}

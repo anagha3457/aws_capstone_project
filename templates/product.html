@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="product-page">
+
+    <div class="product-image">
+        <img src="{{ url_for('static', filename=product.image) }}" alt="{{ product.name }}">
+    </div>
+
+    <div class="product-details">
+        <h2>{{ product.name }}</h2>
+        <p class="price">Price: ₹{{ product.price }}/-</p>
+        <p class="stats">
+            Purchases: {{ product.purchases }} </p>
+        <p class="description">{{ product.description }}</p>
+
+            <!-- <button class="buy-btn">Buy Now</button> -->
+            <form action="{{ url_for('buy_product', product_id=product.id) }}" method="POST">
+        <button type="submit" class="buy-btn">Buy Now</button>
+    </form>
+
+        <br><br>
+        <a href="{{ url_for('home') }}">← Back to Home</a>
+    </div>
+
+</div>
+{% endblock %}

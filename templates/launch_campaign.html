@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h2>Launch Campaign</h2>
+
+    <form method="POST" action="{{ url_for('launch_campaign_submit') }}">
+        <input type="text" name="name" placeholder="Campaign Name" required>
+
+        <input type="text" name="type" placeholder="Campaign Type" required>
+
+        <input type="text" name="subject" placeholder="Campaign Subject" required>
+
+        <textarea name="offer" placeholder="Campaign Offer" required></textarea>
+
+        <!-- SEGMENT / TARGET AUDIENCE -->
+        <label>Target Segment</label>
+        <select name="segment" required>
+            <option value="" disabled selected>Select Segment </option>
+            <option value="engaged">Engaged Users</option>
+            <option value="frequent_visitor">Frequent visiting Users</option>
+            <option value="loyal">Loyal Users</option>
+            <option value="new_users">New Users</option>
+        </select>
+
+        <label>Start Time</label>
+        <input type="datetime-local" name="start_time" required>
+
+        <label>End Time</label>
+        <input type="datetime-local" name="end_time" required>
+
+        <button type="submit">Launch Campaign</button>
+    </form>
+</div>
+{% endblock %}
+

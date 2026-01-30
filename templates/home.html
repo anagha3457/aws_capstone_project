@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}Home - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Hello, {{ username }}!</h1>
+    <p>Welcome to FaveBy! Have a great experience shopping.</p>
+    <!-- <p>Here you can manage your project enrollments and view status.</p> -->
+    <!-- <a href="{{ url_for('logout') }}"><button style="background-color: #dc3545; margin-top: 1rem;">Logout</button></a> -->
+
+<h2>Your Offers</h2>
+
+<div class="campaign-container">
+{% if campaigns %}
+    {% for c in campaigns %}
+        <div class="campaign-card">
+            <!-- <h3>{{ c.name }}</h3>
+            <p>{{ c.offer }}</p>
+            <small>{{ c.start_time }} → {{ c.end_time }}</small>
+         -->
+        <a href="{{ url_for('campaign_click', campaign_id=c.id) }}" class="campaign-card">
+            <h3>{{ c.name }}</h3>
+            <p>{{ c.offer }}</p>
+            <small>{{ c.start_time }} → {{ c.end_time }}</small>
+        </a>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>No offers available right now.</p>
+{% endif %}
+</div>
+
+</div>
+    <div class="home-images">
+    <div class="product-container">
+        {% for id, product in products.items() %}
+            <div class="product-card">
+                <a href="{{ url_for('product', product_id=id) }}">
+                    <img src="{{ url_for('static', filename=product.image) }}"
+                    alt="{{ product.name }}"
+                    class="home-image">
+                </a>
+                <p>{{ product.name }}</p>
+                <p>₹{{ product.price }}/-</p>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+    
+{% endblock %}
