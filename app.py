@@ -373,7 +373,7 @@ def launch_campaign_submit():
         selected_segment = HTML_TO_INT[html_segment]
 
         campaign = {
-            "id": len(campaign) + 1,  # unique auto-increment ID
+            "id": len(campaigns) + 1,  # unique auto-increment ID
             "name": request.form['name'],
             "type": request.form['type'],
             "subject": request.form['subject'],
