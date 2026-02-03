@@ -3,6 +3,7 @@ import os
 import pickle
 import uuid
 import boto3
+from decimal import Decimal
 from botocore.exceptions import ClientError
 
 
@@ -17,9 +18,6 @@ model = pickle.load(open(MODEL_PATH, "rb"))
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'
-
-EMAIL_REGEX = r'^[^@\s]+@[^@\s]+\.[^@\s]+$'
-
 
 # AWS CONFIGURATION
 
@@ -62,21 +60,85 @@ def send_notification(subject, message):
 # HELPER FUNCTIONS
 
 def get_user_features(user_id):
-    response = activity_table.get_item(Key={'user_id': user_id})
-    activity = response.get('Item', {
-        "offers_opened": 0,
-        "offers_clicked": 0,
-        "purchases": 0,
-        "last_open_days": 999,
-        "total_visits": 1
-    })
-    return [[
-        activity["offers_opened"],
-        activity["offers_clicked"],
-        activity["purchases"],
-        activity["last_open_days"],
-        activity["total_visits"]
-    ]]
+    res = activity_table.get_item(Key={'user_id': user_id})
+    a = res.get('Item', {})
+
+    features = [
+        float(a.get("offers_opened", 0)),
+        float(a.get("offers_clicked", 0)),
+        float(a.get("purchases", 0)),
+        float(a.get("last_open_days", 999)),
+        float(a.get("total_visits", 1))
+    ]
+
+    return [features]   # 2D for sklearn
+
+
+PRODUCTS = {
+    "p1": {
+        "id": "p1",
+        "name": "Boat Headphones",
+        "price": 2500,
+        "description": "Wireless headphones with deep bass and long battery life",
+        "image": "product1.jpg"
+    },
+    "p2": {
+        "id": "p2",
+        "name": "Smart Watch",
+        "price": 2000,
+        "description": "Fitness smartwatch with heart rate monitoring",
+        "image": "product2.jpg"
+    },
+    "p3": {
+        "id": "p3",
+        "name": "JBL Bluetooth Speaker",
+        "price": 3000,
+        "description": "Portable Bluetooth speaker with powerful sound",
+        "image": "product3.jpg"
+    },
+    "p4": {
+        "id": "p4",
+        "name": "Dell Laptop",
+        "price": 55000,
+        "description": "High-performance Dell laptop suitable for work and study",
+        "image": "product4.jpg"
+    },
+    "p5": {
+        "id": "p5",
+        "name": "Dell Bluetooth Mouse",
+        "price": 1500,
+        "description": "Wireless Bluetooth mouse with ergonomic design",
+        "image": "product5.jpg"
+    },
+    "p6": {
+        "id": "p6",
+        "name": "Classmate Pens",
+        "price": 100,
+        "description": "Smooth writing pens ideal for everyday use",
+        "image": "product6.jpg"
+    },
+    "p7": {
+        "id": "p7",
+        "name": "Writing Journal",
+        "price": 300,
+        "description": "Hardcover journal for notes and planning",
+        "image": "product7.jpg"
+    },
+    "p8": {
+        "id": "p8",
+        "name": "Camel Water Colours",
+        "price": 250,
+        "description": "Water colour set for painting and sketching",
+        "image": "product8.jpg"
+    },
+    "p9": {
+        "id": "p9",
+        "name": "Laptop Bag",
+        "price": 700,
+        "description": "Durable laptop bag with padded compartments",
+        "image": "product9.jpg"
+    }
+}
 
 
 # ROUTES
@@ -86,7 +148,7 @@ def get_user_features(user_id):
 def index():
     if 'username' in session:
         return redirect(url_for('home'))
-    return render_template('index.html')
+    return render_template('index.html',products=PRODUCTS.values())
 
 @app.route('/about')
 def about():
@@ -191,52 +253,53 @@ def home():
         ExpressionAttributeValues={':inc': 1, ':start': 0, ':zero': 0}
     )
 
-    # Get campaigns for this user
+    
+    # CAMPAIGNS
+    
     response = user_campaigns_table.get_item(Key={'user_id': user_id})
     campaign_ids = response.get('Item', {}).get('campaign_ids', [])
 
-    campaigns_list = []
+    campaigns = []
     for cid in campaign_ids:
         res = campaigns_table.get_item(Key={'campaign_id': cid})
-        if 'Item' in res:
-             item = res['Item']
-        campaigns_list.append({
-            "id": item.get("campaign_id"),
+        if 'Item' not in res:
+            continue
+
+        item = res['Item']
+        campaigns.append({
+            "id": item['campaign_id'],
             "name": item.get("name"),
             "offer": item.get("offer"),
             "start_time": item.get("start_time"),
             "end_time": item.get("end_time")
-        }) #Track offers_opened (ML feature parity with local)
-        
-        if campaigns_list:
-            activity_table.update_item(
-                Key={'user_id': user_id},
-                UpdateExpression="SET offers_opened = if_not_exists(offers_opened, :zero) + :inc",
-                ExpressionAttributeValues={
-                    ':inc': len(campaigns_list),
-                    ':zero': 0
-        }
+        })
+
+    if campaigns:
+        activity_table.update_item(
+            Key={'user_id': user_id},
+            UpdateExpression="SET offers_opened = if_not_exists(offers_opened, :zero) + :inc",
+            ExpressionAttributeValues={':inc': len(campaigns), ':zero': 0}
+        )
+
+    return render_template(
+        'home.html',
+        username=session['username'],
+        campaigns=campaigns,
+        products=PRODUCTS.values()
     )
-    # Get products
-    products = products_table.scan().get('Items', [])
 
-    return render_template('home.html', username=session['username'], campaigns=campaigns_list, products=products)
 
-# ------------------------
 # PRODUCT ROUTES
-# ------------------------
-@app.route('/products')
-def products_list():
-    products = products_table.scan().get('Items', [])
-    return render_template('products.html', products=products)
 
 @app.route('/product/<product_id>')
 def product_detail(product_id):
-    res = products_table.get_item(Key={'product_id': product_id})
-    product = res.get('Item')
+    product = PRODUCTS.get(product_id)
+
     if not product:
         return "Product not found", 404
+
     return render_template('product.html', product=product)
+
 
 @app.route('/buy/<product_id>', methods=['POST'])
 def buy_product(product_id):
@@ -261,9 +324,9 @@ def buy_product(product_id):
     flash("Purchase successful!")
     return redirect(url_for('product_detail', product_id=product_id))
 
-# ------------------------
+
 # CAMPAIGN CLICK
-# ------------------------
+
 @app.route('/campaign/<campaign_id>')
 def campaign_click(campaign_id):
     if 'user_id' not in session:
@@ -279,6 +342,14 @@ def campaign_click(campaign_id):
     )
 
     return redirect(url_for('home'))
+
+# USER LOGOUT
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    session.pop('user_id', None)
+    return redirect(url_for('index'))
+
 
 
 # ADMIN SIGNUP/LOGIN
@@ -314,9 +385,9 @@ def admin_login():
 
     return render_template('admin_login.html')
 
-# ------------------------
+
 # ADMIN DASHBOARD
-# ------------------------
+
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if 'admin' not in session:
@@ -336,9 +407,9 @@ def admin_dashboard():
 
     return render_template('admin_dashboard.html', username=session['admin'], campaigns=campaigns_list)
 
-# ------------------------
+
 # LAUNCH CAMPAIGN
-# ------------------------
+
 @app.route('/launch-campaign', methods=['GET', 'POST'])
 def launch_campaign_submit():
     if request.method == 'POST':
@@ -366,6 +437,14 @@ def launch_campaign_submit():
             user_id = user_item['user_id']
             features = get_user_features(user_id)
             prediction = model.predict(features)
+
+            # LOG ML DECISION
+            app.logger.info(
+                f"[ML] user={user_id} "
+                f"features={features} "
+                f"prediction={prediction.tolist()}"
+    )
+
             send_campaign, customer_profile = prediction[0]
 
             if customer_profile == selected_segment and (send_campaign == 1 or user_item['total_visits'] >= 2):
@@ -379,18 +458,20 @@ def launch_campaign_submit():
 
     return render_template('launch_campaign.html')
 
-
-# LOGOUT
-
-@app.route('/logout')
-def logout():
-    session.pop('username', None)
-    session.pop('user_id', None)
+#admin logout
+@app.route('/admin/logout')
+def admin_logout():
     session.pop('admin', None)
-    return redirect(url_for('index'))
+    return redirect(url_for('admin_login'))
+
+# RUN APP
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 
 # RUN APP
 
 if __name__ == '__main__':
+
     app.run(host='0.0.0.0', port=5000, debug=True)
