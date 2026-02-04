@@ -26,7 +26,7 @@ dynamodb = boto3.resource('dynamodb', region_name=REGION)
 sns = boto3.client('sns', region_name=REGION)
 
 # Replace with your SNS topic ARN if you want notifications
-SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:xxxxxxxxxxxx:campaign_topic'
+# SNS_TOPIC_ARN = 'arn:aws:sns:us-east-1:xxxxxxxxxxxx:campaign_topic'
 
 # DynamoDB Tables
 users_table = dynamodb.Table('Users')
@@ -50,11 +50,11 @@ SEGMENT_MAP = {v: k for k, v in HTML_TO_INT.items()}
 
 # AWS SNS NOTIFICATION
 
-def send_notification(subject, message):
-    try:
-        sns.publish(TopicArn=SNS_TOPIC_ARN, Subject=subject, Message=message)
-    except ClientError as e:
-        print(f"Error sending SNS notification: {e}")
+# def send_notification(subject, message):
+#     try:
+#         sns.publish(TopicArn=SNS_TOPIC_ARN, Subject=subject, Message=message)
+#     except ClientError as e:
+#         print(f"Error sending SNS notification: {e}")
 
 
 # HELPER FUNCTIONS
@@ -195,7 +195,7 @@ def signup():
         session['user_id'] = user_id
         session['username'] = username
 
-        send_notification("New User Signup", f"User {username} signed up.")
+        # send_notification("New User Signup", f"User {username} signed up.")
 
         return redirect(url_for('home'))
 
@@ -228,7 +228,7 @@ def login():
                 ExpressionAttributeValues={':inc': 1, ':start': 0, ':zero': 0}
             )
 
-            send_notification("User Login", f"User {username} logged in.")
+            # send_notification("User Login", f"User {username} logged in.")
 
             return redirect(url_for('home'))
 
@@ -365,7 +365,7 @@ def admin_signup():
             return "Admin already exists!"
 
         admin_table.put_item(Item={'username': username, 'password': password})
-        send_notification("Admin Signup", f"Admin {username} registered.")
+        # send_notification("Admin Signup", f"Admin {username} registered.")
         return redirect(url_for('admin_login'))
 
     return render_template('admin_signup.html')
@@ -430,7 +430,7 @@ def launch_campaign_submit():
         }
 
         campaigns_table.put_item(Item=campaign_item)
-        send_notification("New Campaign", f"Campaign '{campaign_item['name']}' launched.")
+        # send_notification("New Campaign", f"Campaign '{campaign_item['name']}' launched.")
 
         # ML logic: assign campaigns to users
         for user_item in activity_table.scan()['Items']:
@@ -475,3 +475,4 @@ if __name__ == '__main__':
 if __name__ == '__main__':
 
     app.run(host='0.0.0.0', port=5000, debug=True)
+
